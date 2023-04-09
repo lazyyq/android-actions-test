@@ -14,9 +14,9 @@ jobs:
   build:
     runs-on: ubuntu-20.04
     env:
-      KEY_ALIAS: $
-      KEYSTORE_PASSWORD: $
-      KEY_PASSWORD: $
+      KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+      KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+      KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
       VERSION_NAME: 1.0.0
       VERSION_CODE: 30
 
@@ -64,7 +64,7 @@ jobs:
           # echo "APK_NAME=$TEMP_APK_NAME" >> $GITHUB_ENV
           # echo "PATH_PREFIX=output/${GITHUB_REPOSITORY##*/}/${BRANCH_PATH_WITHOUT_NO_TAIL}" >> $GITHUB_ENV
 
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       # - name: Slack Notification Start
         # uses: rtCamp/action-slack-notify@v2
@@ -79,11 +79,13 @@ jobs:
           # SLACK_WEBHOOK: $
 
       - name: Store Gradle cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
-          path: ~/.gradle/caches
-          key: $-gradle-$
-          restore-keys: $-gradle-
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: ${{ runner.os }}-gradle-
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v2
