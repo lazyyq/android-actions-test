@@ -101,8 +101,13 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Build with Gradle
-        run:
-          ./gradlew clean assembleRelease
+        run: ./gradlew clean assembleRelease
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v3
+        with:
+          name: APK
+          path: app/build/outputs/apk/release
 
       # - name: Configure AWS credentials
         # uses: aws-actions/configure-aws-credentials@v1
