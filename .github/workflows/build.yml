@@ -17,6 +17,7 @@ jobs:
       KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
       KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
       KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+      KEY_BASE_64_RELEASE: ${{ secrets.KEY_BASE_64_RELEASE }}
       VERSION_NAME: 1.0.0
       VERSION_CODE: 30
 
