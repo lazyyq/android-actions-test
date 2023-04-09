@@ -1,0 +1,138 @@
+name: Android CI Release Build
+
+on:
+  push:
+    branches:
+      - master
+      - dev
+      - release
+      - hotfix/*
+    tags:
+      - 'buildR/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    env:
+      KEY_ALIAS: $
+      KEYSTORE_PASSWORD: $
+      KEY_PASSWORD: $
+      VERSION_NAME: 1.0.0
+      VERSION_CODE: 30
+
+      # S3_BUCKET_URL: "s3://prod-test-bucket"
+      # S3_URL: "https://xxxx.s3.ap-northeast-2.amazonaws.com"
+      # S3_BROWSING: "https://xxxx.s3.ap-northeast-2.amazonaws.com/index.html#"
+
+    steps:
+      - name: Set Time Zone
+        run: sudo ln -sf /usr/share/zoneinfo/Asia/Seoul /etc/localtime
+
+      - name: Extract branch name
+        shell: bash
+        run: |
+          export BRANCH_RAW=$(echo ${GITHUB_REF#refs/heads/})
+          echo "BRANCH_RAW=$BRANCH_RAW" >> $GITHUB_ENV
+          echo "BRANCH_RAW : $BRANCH_RAW"
+
+          export BRANCH_PATH_FULL="$(echo $BRANCH_RAW | sed 's/refs\/tags\/buildR\///' | sed 's/\/$//')"
+          echo "BRANCH_PATH_FULL=$BRANCH_PATH_FULL" >> $GITHUB_ENV
+          echo "BRANCH_PATH_FULL : $BRANCH_PATH_FULL"
+
+          export BRANCH_PATH_WITHOUT_NO_TAIL="$(echo $BRANCH_PATH_FULL | sed 's/\/[0-9]*$//')"
+          echo "BRANCH_PATH_WITHOUT_NO_TAIL=$BRANCH_PATH_WITHOUT_NO_TAIL" >> $GITHUB_ENV
+          echo "BRANCH_PATH_WITHOUT_NO_TAIL : $BRANCH_PATH_WITHOUT_NO_TAIL"
+
+          export BRANCH_TAG_NO="$(echo $BRANCH_PATH_FULL | sed "s|$BRANCH_PATH_WITHOUT_NO_TAIL||g" | sed 's/\///')"
+          echo "BRANCH_TAG_NO=$BRANCH_TAG_NO" >> $GITHUB_ENV
+          echo "BRANCH_TAG_NO : $BRANCH_TAG_NO"
+
+          if [ -z "${BRANCH_TAG_NO// }" ]
+          then
+            export BRANCH_PATH_FOR_FILENAME="$(echo $BRANCH_PATH_WITHOUT_NO_TAIL | sed 's/\//-/'  | sed 's/_/-/g')"
+          else
+            export BRANCH_PATH_FOR_FILENAME="$(echo $BRANCH_PATH_WITHOUT_NO_TAIL-$BRANCH_TAG_NO | sed 's/\//-/'  | sed 's/_/-/g')"
+          fi
+          echo "BRANCH_PATH_FOR_FILENAME=$BRANCH_PATH_FOR_FILENAME" >> $GITHUB_ENV
+          echo "BRANCH_PATH_FOR_FILENAME : $BRANCH_PATH_FOR_FILENAME"
+
+      # - name: set APK name and S3 path
+        # run: |
+          # export TEMP_APK_VERSION_NAME="${GITHUB_REPOSITORY##*/}-$-$-$"
+          # export TEMP_APK_NAME="$TEMP_APK_VERSION_NAME-$(date +'%Y-%m-%d-%H:%M:%S').apk"
+# 
+          # echo "APK_NAME=$TEMP_APK_NAME" >> $GITHUB_ENV
+          # echo "PATH_PREFIX=output/${GITHUB_REPOSITORY##*/}/${BRANCH_PATH_WITHOUT_NO_TAIL}" >> $GITHUB_ENV
+
+      - uses: actions/checkout@v2
+
+      # - name: Slack Notification Start
+        # uses: rtCamp/action-slack-notify@v2
+        # if: always()
+        # env:
+          # SLACK_ICON_EMOJI: ":ssm:"
+          # SLACK_TITLE: ":android2: 빌드 시작 / 버전 : $($) / 브랜치 : $"
+          # SLACK_USERNAME: "ssm-mobile-builder-bot"
+          # SLACK_CHANNEL: "#github_actions_test"
+          # SLACK_COLOR: "#CCCCCC"
+          # SLACK_MESSAGE: "commit : $"
+          # SLACK_WEBHOOK: $
+
+      - name: Store Gradle cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.gradle/caches
+          key: $-gradle-$
+          restore-keys: $-gradle-
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v2
+
+      # - name: Install NDK
+        # run: echo "y" | sudo /usr/local/lib/android/sdk/tools/bin/sdkmanager --install "ndk;20.0.5594570" --sdk_root=${ANDROID_SDK_ROOT}
+
+      - name: Create Release KeyStore File
+        run: echo "$" | base64 -d > release.keystore
+
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+
+      - name: Build with Gradle
+        run:
+          ./gradlew clean assembleRelease
+
+      # - name: Configure AWS credentials
+        # uses: aws-actions/configure-aws-credentials@v1
+        # with:
+          # aws-access-key-id: $
+          # aws-secret-access-key: $
+          # aws-region: ap-northeast-2
+
+      # - name: Copy files to S3 with the AWS CLI
+        # run: |
+          # find . -type f -name "*.apk" -exec cp '{}' $ \;
+          # aws s3 cp $ $/$/
+
+      # - name: Slack Notification Finish With Success
+        # uses: rtCamp/action-slack-notify@v2
+        # if: success()
+        # env:
+          # SLACK_ICON_EMOJI: ":android2:"
+          # SLACK_TITLE: ":android2: 빌드 성공 / 버전 : $($) / 브랜치 : $"
+          # SLACK_USERNAME: "ssm-mobile-builder-bot"
+          # SLACK_CHANNEL: "#github_actions_test"
+          # SLACK_COLOR: "#00BFA5"
+          # SLACK_MESSAGE: "commit : $\n<$/$/$|파일다운로드>, <$$/|브라우징>"
+          # SLACK_WEBHOOK: $
+
+      # - name: Slack Notification Finish With Fail
+        # uses: rtCamp/action-slack-notify@v2
+        # if: failure()
+        # env:
+          # SLACK_ICON_EMOJI: ":android2:"
+          # SLACK_TITLE: ":android2: 빌드 실패 / 버전 : $($) / 브랜치 : $"
+          # SLACK_USERNAME: "ssm-mobile-builder-bot"
+          # SLACK_CHANNEL: "#github_actions_test"
+          # SLACK_COLOR: "#FF5252"
+          # SLACK_MESSAGE: "commit : $"
+          # SLACK_WEBHOOK: $
