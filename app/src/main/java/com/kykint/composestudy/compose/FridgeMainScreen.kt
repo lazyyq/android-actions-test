@@ -5,24 +5,33 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material.icons.filled.PhotoAlbum
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.kykint.composestudy.model.Food
 import com.kykint.composestudy.ui.ComposableToast
 import com.kykint.composestudy.ui.theme.ComposeStudyTheme
 import com.kykint.composestudy.viewmodel.DummyFridgeMainViewModel
 import com.kykint.composestudy.viewmodel.IFridgeMainViewModel
+import org.threeten.bp.Instant
+import org.threeten.bp.LocalDateTime
+import org.threeten.bp.ZoneId
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -97,7 +106,7 @@ fun FoodList(models: List<Food>, onItemClick: (Int) -> Unit = {}) {
     ) {
         // TODO: key 추가 후 성능 향상 테스트
         itemsIndexed(models) { index, item ->
-            FoodListItem(model = item, onClick = {
+            FoodListItem(food = item, onClick = {
                 onItemClick.invoke(index)
             })
         }
@@ -112,7 +121,7 @@ fun FoodListPreview() {
 }
 
 @Composable
-fun FoodListItem(model: Food, onClick: () -> Unit = {}) {
+fun FoodListItem(food: Food, onClick: () -> Unit = {}) {
     Card(
         shape = RoundedCornerShape(8.dp),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
@@ -127,14 +136,61 @@ fun FoodListItem(model: Food, onClick: () -> Unit = {}) {
             .wrapContentHeight()
             .padding(8.dp)
     ) {
-        Text(
-            text = model.name,
-            textAlign = TextAlign.Center,
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier
-                .padding(8.dp)
-                .fillMaxWidth(),
-        )
+        Row(
+            modifier = Modifier.fillMaxSize(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center,
+        ) {
+            AsyncImage(
+                model = ImageRequest.Builder(LocalContext.current)
+                    .data("https://developer.android.com/images/brand/Android_Robot.png")
+                    .crossfade(true)
+                    .build(),
+                placeholder = rememberVectorPainter(Icons.Filled.PhotoAlbum),
+                contentDescription = food.name,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .width(128.dp)
+                    .height(128.dp)
+                    .padding(16.dp),
+
+            )
+            /*
+            Text(
+                text = model.name,
+                textAlign = TextAlign.Center,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier
+                    .padding(8.dp),
+            )
+            */
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally,
+
+            ) {
+                Text(
+                    text = food.name,
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .padding(16.dp),
+                )
+                //LocalDateTime.ofInstant(Instant.ofEpochMilli(startTime), ZoneId.systemDefault())
+                Text(
+                    text = food.bestBefore?.let {
+                        LocalDateTime.ofInstant(
+                            Instant.ofEpochMilli(it),
+                            ZoneId.systemDefault()
+                        ).toString()
+                    } ?: "유통기한 모름",
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .padding(16.dp),
+                )
+            }
+        }
     }
 }
 
@@ -142,5 +198,5 @@ fun FoodListItem(model: Food, onClick: () -> Unit = {}) {
 @Composable
 fun FoodListItemPreview() {
     val model = Food(name = "Title string")
-    FoodListItem(model = model)
+    FoodListItem(food = model)
 }
